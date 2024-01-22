@@ -2,7 +2,8 @@ module.exports = {
   env: {
     commonjs: true,
     es2023: true,
-    node: true
+    node: true,
+    jest: true
   },
   extends: 'standard',
   parserOptions: {
