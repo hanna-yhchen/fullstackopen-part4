@@ -5,29 +5,26 @@ const dummy = (blogs) => {
 }
 
 const totalLikes = (blogs) => {
-  return blogs.reduce((total, blog) => total + blog.likes, 0)
+  return chain(blogs).sumBy('likes').value()
 }
 
 const favoriteBlog = (blogs) => {
-  let topBlog = null
-  for (const blog of blogs) {
-    topBlog = blog.likes > (topBlog?.likes ?? 0) ? blog : topBlog
-  }
-  return topBlog
+  if (blogs.length === 0) { return null }
+  return chain(blogs).maxBy('likes').value()
 }
 
 const mostBlogs = (blogs) => {
-  return most((blogsOfEachAuthor) => blogsOfEachAuthor.length, blogs)
+  return findTopAuthor((owningBlogs) => owningBlogs.length, blogs)
 }
 
 const mostLikes = (blogs) => {
-  return most(totalLikes, blogs)
+  return findTopAuthor(totalLikes, blogs)
 }
 
-const most = (valuesMapper, blogs) => {
+const findTopAuthor = (toTarget, blogs) => {
   return chain(blogs)
     .groupBy('author')
-    .mapValues((blogs) => valuesMapper(blogs))
+    .mapValues(toTarget)
     .map((count, author) => ({ author, count }))
     .maxBy('count')
     .value()
