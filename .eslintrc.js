@@ -12,7 +12,11 @@ module.exports = {
   rules: {
     'space-before-function-paren': [
       'error',
-      'never'
+      {
+        anonymous: 'always',
+        named: 'never',
+        asyncArrow: 'always'
+      }
     ]
   }
 }
