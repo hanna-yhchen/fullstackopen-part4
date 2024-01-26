@@ -13,87 +13,91 @@ beforeEach(async () => {
   await Blog.insertMany(initialBlogs)
 })
 
-test('blogs are returned as json', async () => {
-  await api
-    .get(blogsEndpoint)
-    .expect(200)
-    .expect('Content-Type', /application\/json/)
+describe('getting blogs', () => {
+  test('blogs are returned as json', async () => {
+    await api
+      .get(blogsEndpoint)
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+  })
+
+  test('all blogs are returned', async () => {
+    const response = await api.get(blogsEndpoint)
+    expect(response.body).toHaveLength(initialBlogs.length)
+  })
+
+  test('the returned json has a property named id', async () => {
+    const response = await api.get(blogsEndpoint)
+    const blog = response.body[0]
+    expect(blog.id).toBeDefined()
+  })
 })
 
-test('all blogs are returned', async () => {
-  const response = await api.get(blogsEndpoint)
-  expect(response.body).toHaveLength(initialBlogs.length)
-})
+describe('adding new blog', () => {
+  test('succeeds with valid data', async () => {
+    const newBlog = {
+      title: 'Type wars',
+      author: 'Robert C. Martin',
+      url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html',
+      likes: 2
+    }
 
-test('the returned json has a property named id', async () => {
-  const response = await api.get(blogsEndpoint)
-  const blog = response.body[0]
-  expect(blog.id).toBeDefined()
-})
+    await api
+      .post(blogsEndpoint)
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
 
-test('a valid blog can be added', async () => {
-  const newBlog = {
-    title: 'Type wars',
-    author: 'Robert C. Martin',
-    url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html',
-    likes: 2
-  }
+    const blogs = await blogsInDb()
+    expect(blogs).toHaveLength(initialBlogs.length + 1)
 
-  await api
-    .post(blogsEndpoint)
-    .send(newBlog)
-    .expect(201)
-    .expect('Content-Type', /application\/json/)
+    const fields = {
+      titles: map(blogs, 'title'),
+      authors: map(blogs, 'author'),
+      urls: map(blogs, 'url'),
+      likes: map(blogs, 'likes')
+    }
+    expect(fields.titles).toContain(newBlog.title)
+    expect(fields.authors).toContain(newBlog.author)
+    expect(fields.urls).toContain(newBlog.url)
+    expect(fields.likes).toContain(newBlog.likes)
+  })
 
-  const blogs = await blogsInDb()
-  expect(blogs).toHaveLength(initialBlogs.length + 1)
+  test('succeeds if missing likes property', async () => {
+    const newBlog = {
+      title: 'Type wars',
+      author: 'Robert C. Martin',
+      url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html'
+    }
 
-  const fields = {
-    titles: map(blogs, 'title'),
-    authors: map(blogs, 'author'),
-    urls: map(blogs, 'url'),
-    likes: map(blogs, 'likes')
-  }
-  expect(fields.titles).toContain(newBlog.title)
-  expect(fields.authors).toContain(newBlog.author)
-  expect(fields.urls).toContain(newBlog.url)
-  expect(fields.likes).toContain(newBlog.likes)
-})
+    await api.post(blogsEndpoint)
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
 
-test('a blog without likes can be added', async () => {
-  const newBlog = {
-    title: 'Type wars',
-    author: 'Robert C. Martin',
-    url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html'
-  }
+    const created = (await blogsInDb({ url: newBlog.url }))[0]
+    expect(created.likes).toBe(0)
+  })
 
-  await api.post(blogsEndpoint)
-    .send(newBlog)
-    .expect(201)
-    .expect('Content-Type', /application\/json/)
+  test('fails if missing title or url', async () => {
+    const blogWithoutTitle = {
+      author: 'Robert C. Martin',
+      url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html'
+    }
 
-  const created = (await blogsInDb({ url: newBlog.url }))[0]
-  expect(created.likes).toBe(0)
-})
+    await api.post(blogsEndpoint)
+      .send(blogWithoutTitle)
+      .expect(400)
 
-test('a blog without title or url cannot be added', async () => {
-  const blogWithoutTitle = {
-    author: 'Robert C. Martin',
-    url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html'
-  }
+    const blogWithoutUrl = {
+      title: 'Type wars',
+      author: 'Robert C. Martin'
+    }
 
-  await api.post(blogsEndpoint)
-    .send(blogWithoutTitle)
-    .expect(400)
-
-  const blogWithoutUrl = {
-    title: 'Type wars',
-    author: 'Robert C. Martin'
-  }
-
-  await api.post(blogsEndpoint)
-    .send(blogWithoutUrl)
-    .expect(400)
+    await api.post(blogsEndpoint)
+      .send(blogWithoutUrl)
+      .expect(400)
+  })
 })
 
 afterAll(async () => {
