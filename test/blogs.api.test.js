@@ -1,4 +1,6 @@
 const mongoose = require('mongoose')
+mongoose.set('bufferTimeoutMS', 100000)
+
 const supertest = require('supertest')
 const app = require('../app')
 const Blog = require('../models/Blog')
@@ -97,6 +99,23 @@ describe('adding new blog', () => {
     await api.post(blogsEndpoint)
       .send(blogWithoutUrl)
       .expect(400)
+  })
+})
+
+describe('deleting a blog', () => {
+  test('succeeds with valid id', async () => {
+    const originalBlogs = await blogsInDb()
+    const blogToDelete = originalBlogs[0]
+
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .expect(204)
+
+    const remainingBlogs = await blogsInDb()
+    expect(remainingBlogs).toHaveLength(originalBlogs.length - 1)
+
+    const blogUrls = map(remainingBlogs, 'url')
+    expect(blogUrls).not.toContain(blogToDelete)
   })
 })
 
