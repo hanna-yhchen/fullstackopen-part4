@@ -1,13 +1,14 @@
 const { api } = require('./test-setup')
 const Blog = require('../models/Blog')
-const { initialBlogs, blogsInDb } = require('./test-helper')
+const { initialBlogs, blogsInDb, setupRootUser, rootUserAuthBearer } = require('./test-helper')
 const { map } = require('lodash')
 
 const blogsEndpoint = '/api/blogs'
 
 beforeEach(async () => {
+  const userId = await setupRootUser()
   await Blog.deleteMany({})
-  await Blog.insertMany(initialBlogs)
+  await Blog.insertMany(initialBlogs(userId))
 })
 
 describe('getting blogs', () => {
@@ -20,7 +21,7 @@ describe('getting blogs', () => {
 
   test('all blogs are returned', async () => {
     const response = await api.get(blogsEndpoint)
-    expect(response.body).toHaveLength(initialBlogs.length)
+    expect(response.body).toHaveLength(initialBlogs().length)
   })
 
   test('the returned json has a property named id', async () => {
@@ -32,6 +33,7 @@ describe('getting blogs', () => {
 
 describe('adding new blog', () => {
   test('succeeds with valid data', async () => {
+    const authBearer = await rootUserAuthBearer()
     const newBlog = {
       title: 'Type wars',
       author: 'Robert C. Martin',
@@ -41,12 +43,13 @@ describe('adding new blog', () => {
 
     await api
       .post(blogsEndpoint)
+      .set('Authorization', authBearer)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
     const blogs = await blogsInDb()
-    expect(blogs).toHaveLength(initialBlogs.length + 1)
+    expect(blogs).toHaveLength(initialBlogs().length + 1)
 
     const fields = {
       titles: map(blogs, 'title'),
@@ -61,6 +64,7 @@ describe('adding new blog', () => {
   })
 
   test('succeeds if missing likes property', async () => {
+    const authBearer = await rootUserAuthBearer()
     const newBlog = {
       title: 'Type wars',
       author: 'Robert C. Martin',
@@ -68,6 +72,7 @@ describe('adding new blog', () => {
     }
 
     await api.post(blogsEndpoint)
+      .set('Authorization', authBearer)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -77,12 +82,14 @@ describe('adding new blog', () => {
   })
 
   test('fails if missing title or url', async () => {
+    const authBearer = await rootUserAuthBearer()
     const blogWithoutTitle = {
       author: 'Robert C. Martin',
       url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html'
     }
 
     await api.post(blogsEndpoint)
+      .set('Authorization', authBearer)
       .send(blogWithoutTitle)
       .expect(400)
 
@@ -92,18 +99,35 @@ describe('adding new blog', () => {
     }
 
     await api.post(blogsEndpoint)
+      .set('Authorization', authBearer)
       .send(blogWithoutUrl)
       .expect(400)
+  })
+
+  test('fails if missing `Authorization` token', async () => {
+    const newBlog = {
+      title: 'Type wars',
+      author: 'Robert C. Martin',
+      url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html',
+      likes: 2
+    }
+
+    await api
+      .post(blogsEndpoint)
+      .send(newBlog)
+      .expect(401)
   })
 })
 
 describe('deleting a blog', () => {
   test('succeeds with valid id', async () => {
+    const authBearer = await rootUserAuthBearer()
     const originalBlogs = await blogsInDb()
     const blogToDelete = originalBlogs[0]
 
     await api
       .delete(`${blogsEndpoint}/${blogToDelete.id}`)
+      .set('Authorization', authBearer)
       .expect(204)
 
     const remainingBlogs = await blogsInDb()
@@ -111,6 +135,15 @@ describe('deleting a blog', () => {
 
     const blogUrls = map(remainingBlogs, 'url')
     expect(blogUrls).not.toContain(blogToDelete)
+  })
+
+  test('fails if missing `Authorization` token', async () => {
+    const originalBlogs = await blogsInDb()
+    const blogToDelete = originalBlogs[0]
+
+    await api
+      .delete(`${blogsEndpoint}/${blogToDelete.id}`)
+      .expect(401)
   })
 })
 

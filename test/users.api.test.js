@@ -1,22 +1,11 @@
 const { api } = require('./test-setup')
-const bcrypt = require('bcrypt')
-const User = require('../models/User')
-const { usersInDb } = require('./test-helper')
+const { usersInDb, setupRootUser } = require('./test-helper')
 
 const usersEndpoint = '/api/users'
 
 describe('creating a new user when there is initially one user in db', () => {
   beforeEach(async () => {
-    await User.deleteMany({})
-
-    const passwordHash = await bcrypt.hash('secret', 10)
-    const user = new User({
-      username: 'root',
-      name: 'Superuser',
-      passwordHash
-    })
-
-    await user.save()
+    await setupRootUser()
   })
 
   test('succeeds with a fresh username', async () => {
