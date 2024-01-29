@@ -108,7 +108,7 @@ describe('deleting a blog', () => {
     const blogToDelete = originalBlogs[0]
 
     await api
-      .delete(`/api/blogs/${blogToDelete.id}`)
+      .delete(`${blogsEndpoint}/${blogToDelete.id}`)
       .expect(204)
 
     const remainingBlogs = await blogsInDb()
@@ -131,7 +131,7 @@ describe('updating a blog', () => {
     }
 
     await api
-      .put(`/api/blogs/${blogToUpdate.id}`)
+      .put(`${blogsEndpoint}/${blogToUpdate.id}`)
       .send(updateRequest)
       .expect(200)
 
