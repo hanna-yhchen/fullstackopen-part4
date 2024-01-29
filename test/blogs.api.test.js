@@ -119,6 +119,27 @@ describe('deleting a blog', () => {
   })
 })
 
+describe('updating a blog', () => {
+  test('succeeds with valid id', async () => {
+    const originalBlogs = await blogsInDb()
+    const blogToUpdate = originalBlogs[0]
+    const updateRequest = {
+      title: blogToUpdate.title,
+      author: blogToUpdate.author,
+      url: blogToUpdate.url,
+      likes: blogToUpdate.likes + 1
+    }
+
+    await api
+      .put(`/api/blogs/${blogToUpdate.id}`)
+      .send(updateRequest)
+      .expect(200)
+
+    const updatedBlog = await Blog.findById(blogToUpdate.id)
+    expect(updatedBlog.likes).toBe(updateRequest.likes)
+  })
+})
+
 afterAll(async () => {
   await mongoose.connection.close()
 })
