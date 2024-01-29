@@ -9,7 +9,8 @@ Content-Type: application/json
   "title": "Post",
   "author": "Hanna",
   "url": "https://example.com/post",
-  "likes": 27
+  "likes": 27,
+  "userId": "65b76742f011a2b150561dac"
 }
 
 ###
