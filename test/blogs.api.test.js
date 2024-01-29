@@ -1,13 +1,8 @@
-const mongoose = require('mongoose')
-mongoose.set('bufferTimeoutMS', 100000)
-
-const supertest = require('supertest')
-const app = require('../app')
+const { api } = require('./test-setup')
 const Blog = require('../models/Blog')
 const { initialBlogs, blogsInDb } = require('./test-helper')
 const { map } = require('lodash')
 
-const api = supertest(app)
 const blogsEndpoint = '/api/blogs'
 
 beforeEach(async () => {
@@ -138,8 +133,4 @@ describe('updating a blog', () => {
     const updatedBlog = await Blog.findById(blogToUpdate.id)
     expect(updatedBlog.likes).toBe(updateRequest.likes)
   })
-})
-
-afterAll(async () => {
-  await mongoose.connection.close()
 })
